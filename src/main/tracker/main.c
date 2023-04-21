@@ -159,6 +159,7 @@ void servosInit(void);
 //EASING
 int16_t _lastTilt;
 int16_t tilt;
+int16_t tiltReversed;
 bool _servo_tilt_has_arrived = true;
 uint8_t _tilt_pos = 0;
 float _servo_tilt_must_move = -1;
@@ -183,6 +184,7 @@ uint8_t Divider;
 //SERVOS PWM
 uint16_t pwmPan;
 uint16_t pwmTilt;
+uint16_t pwmTiltReversed;
 uint16_t _lastPwmTilt;
 
 uint16_t minPwmPan;
@@ -516,7 +518,9 @@ void calcTilt(void) {
   }
   else {
 	pwmTilt = (uint16_t) map(tiltTarget,0,90,masterConfig.tilt0, masterConfig.tilt90);
-    pwmWriteServo(masterConfig.tilt_pin,pwmTilt);
+	pwmTiltReversed = (uint16_t) map(tiltTarget,90,0,masterConfig.tilt0, masterConfig.tilt90);
+        pwmWriteServo(masterConfig.tilt_pin,pwmTilt);
+	pwmWriteServo(masterConfig.tilt_pin2,pwmTiltReversed);
   }
 }
 
@@ -604,14 +608,21 @@ void servo_tilt_update(){
 		else
 			easingout = _lastTilt - easeTilt(_tilt_pos, 0, _lastTilt - _servo_tilt_must_move, masterConfig.easing_steps);
 			pwmTilt=(int16_t)map(easingout,0,90,masterConfig.tilt0,masterConfig.tilt90);
+			pwmTiltReversed=(int16_t)map(easingout,90,0,masterConfig.tilt0,masterConfig.tilt90);
+
 			if(_lastPwmTilt != pwmTilt)
-				pwmWriteServo(masterConfig.tilt_pin,pwmTilt);
+			{
+   			    pwmWriteServo(masterConfig.tilt_pin,pwmTilt);
+			    pwmWriteServo(masterConfig.tilt_pin2,pwmTiltReversed);
+			}
 			_tilt_pos++;
 	  }
 	  else {
 		if(_tilt_pos == masterConfig.easing_steps){
 		  pwmTilt = (uint16_t) map(_servo_tilt_must_move,0,90, masterConfig.tilt0, masterConfig.tilt90);
+		  pwmTiltReversed = (uint16_t) map(_servo_tilt_must_move,90,0, masterConfig.tilt0, masterConfig.tilt90);
 		  pwmWriteServo(masterConfig.tilt_pin,pwmTilt);
+		  pwmWriteServo(masterConfig.tilt_pin2,pwmTiltReversed);
 		  _lastTilt = _servo_tilt_must_move;
 		  _tilt_pos=0;
 		  _servo_tilt_has_arrived = true;
@@ -780,7 +791,9 @@ void updateServoTest(void){
 			else
 			{
 				tilt = map(SERVOTEST_TILT, 0, 90, masterConfig.tilt0, masterConfig.tilt90);
+				tiltReversed = map(SERVOTEST_TILT, 90, 0,masterConfig.tilt0, masterConfig.tilt90);
 				pwmWriteServo(masterConfig.tilt_pin,tilt);
+				pwmWriteServo(masterConfig.tilt_pin2,tiltReversed);
 			}
 			DISABLE_SERVO(SERVOTILT_MOVE);
 		}
@@ -1638,6 +1651,7 @@ void calcTelemetryFrequency(void){
 
 void servosInit(void)
 {
-	pwmWriteServo(masterConfig.pan_pin, masterConfig.pan0);
-	pwmWriteServo(masterConfig.tilt_pin, masterConfig.tilt0);
+    pwmWriteServo(masterConfig.pan_pin, masterConfig.pan0);
+    pwmWriteServo(masterConfig.tilt_pin, masterConfig.tilt0);
+    pwmWriteServo(masterConfig.tilt_pin2, masterConfig.tilt0);
 }
